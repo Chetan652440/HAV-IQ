@@ -1,1 +1,0 @@
-force-app/main/default/objects/HAVIQ_Sample_Object__c
