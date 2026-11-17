@@ -10,4 +10,15 @@
         <senderType>DefaultWorkflowUser</senderType>
         <template>unfiled$public/HAVIQ_Sample_Alert_Template</template>
     </alerts>
+    <rules>
+        <fullName>Testing_Haviq</fullName>
+        <active>false</active>
+        <criteriaItems>
+            <field>Account.Name</field>
+            <operation>equals</operation>
+            <value>0</value>
+        </criteriaItems>
+        <description>Testing</description>
+        <triggerType>onCreateOrTriggeringUpdate</triggerType>
+    </rules>
 </Workflow>
