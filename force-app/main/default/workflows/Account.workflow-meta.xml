@@ -10,6 +10,17 @@
         <senderType>DefaultWorkflowUser</senderType>
         <template>unfiled$public/HAVIQ_Sample_Alert_Template</template>
     </alerts>
+    <alerts>
+        <fullName>HAVIQ_Workflow_Alert_Test_2</fullName>
+        <description>HAVIQ Workflow Alert Dependency Test 2</description>
+        <protected>false</protected>
+        <recipients>
+            <recipient>chetan+2.29c620201865@agentforce.com</recipient>
+            <type>user</type>
+        </recipients>
+        <senderType>DefaultWorkflowUser</senderType>
+        <template>unfiled$public/SalesNewCustomerEmail</template>
+    </alerts>
     <rules>
         <fullName>Testing_Haviq</fullName>
         <active>false</active>
