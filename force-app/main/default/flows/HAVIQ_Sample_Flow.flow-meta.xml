@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>68.0</apiVersion>
+    <description>Sample Screen Flow for HAV-IQ deployment testing.</description>
+    <environments>Default</environments>
+    <interviewLabel>HAVIQ_Sample_Flow {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>HAVIQ_Sample_Flow</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>Flow</processType>
+    <screens>
+        <allowBack>true</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>true</allowPause>
+        <fields>
+            <fieldText>&lt;p&gt;Welcome! This is a sample Salesforce Flow created for HAV-IQ metadata deployment testing.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <name>Deployment_Test_Message</name>
+        </fields>
+        <label>HAV-IQ Sample Screen</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <name>HAV_IQ_Sample_Screen</name>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <start>
+        <connector>
+            <targetReference>HAV_IQ_Sample_Screen</targetReference>
+        </connector>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+    </start>
+    <status>Active</status>
+</Flow>
