@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FlexiPage xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>FlexiPage testing with standard Recent Items component for HAV-IQ deployment.</description>
+    <flexiPageRegions>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>entityNames</name>
+                    <valueList>
+                        <valueListItems>
+                            <value>AiSkill</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>Account</value>
+                        </valueListItems>
+                    </valueList>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>label</name>
+                    <value>HAVIQ Test Recent Items</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>maxRecords</name>
+                    <value>3</value>
+                </componentInstanceProperties>
+                <componentName>flexipage:recentItems</componentName>
+                <identifier>flexipage_recentItems</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>entityNames</name>
+                    <valueList>
+                        <valueListItems>
+                            <value>AiSkill</value>
+                        </valueListItems>
+                    </valueList>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>label</name>
+                    <value>Testing</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>maxRecords</name>
+                    <value>3</value>
+                </componentInstanceProperties>
+                <componentName>flexipage:recentItems</componentName>
+                <identifier>flexipage_recentItems2</identifier>
+            </componentInstance>
+        </itemInstances>
+        <name>main</name>
+        <type>Region</type>
+    </flexiPageRegions>
+    <masterLabel>HAVIQ Recent Items FlexiPage</masterLabel>
+    <template>
+        <name>flexipage:defaultAppHomeTemplate</name>
+    </template>
+    <type>AppPage</type>
+</FlexiPage>
