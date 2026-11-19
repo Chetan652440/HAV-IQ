@@ -1,1 +1,1 @@
-force-app/main/default/lwc/haviq193FinalLwc
+force-app/main/default/aura/HAVIQ193BasicAura
