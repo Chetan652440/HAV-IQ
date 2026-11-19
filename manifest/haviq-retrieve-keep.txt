@@ -1,1 +1,1 @@
-force-app/main/default/aura/HAVIQ193BasicAura
+force-app/main/default/customMetadata

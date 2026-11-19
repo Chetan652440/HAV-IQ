@@ -7,8 +7,8 @@
 -->
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
-        <members>HAVIQ193BasicAura</members>
-        <name>AuraDefinitionBundle</name>
+        <members>HAVIQ_193_Test_Config.HAVIQ_193_Test_Config_Record</members>
+        <name>CustomMetadata</name>
     </types>
     <version>64.0</version>
 </Package>
