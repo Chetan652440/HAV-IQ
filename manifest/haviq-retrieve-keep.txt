@@ -1,2 +1,1 @@
-force-app/main/default/objects/HAVIQ_193_Test_Config__mdt
-force-app/main/default/objects/HAVIQ_193_Test_Config__mdt/fields
+force-app/main/default/pages
