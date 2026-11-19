@@ -1,1 +1,1 @@
-force-app/main/default/pages
+force-app/main/default/lwc/haviq193FinalLwc
