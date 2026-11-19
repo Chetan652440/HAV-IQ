@@ -1,2 +1,1 @@
-force-app/main/default/applications
-force-app/main/default/flexipages
+force-app/main/default/classes
