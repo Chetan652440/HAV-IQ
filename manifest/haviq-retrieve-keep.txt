@@ -1,1 +1,1 @@
-force-app/main/default/flows
+force-app/main/default/objects/HAVIQ_193_Test_Config__mdt
