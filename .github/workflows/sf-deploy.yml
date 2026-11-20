@@ -14,7 +14,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
   repository_dispatch:
-    types: [haviq-assemble]
+    types: [haviq-assemble, haviq-merge]
 
 permissions:
   contents: write
@@ -2816,7 +2816,11 @@ jobs:
           tree = set(out.stdout.splitlines())
           take = set()
           missing = []
+          inline = []
           for c in req["components"]:
+              if c.get("inline"):
+                  inline.append(c)
+                  continue
               need = [c["primary"]] + c.get("required", [])
               gone = [p for p in need if p not in tree]
               if gone:
@@ -2836,6 +2840,42 @@ jobs:
           files = sorted(take)
           for i in range(0, len(files), 200):
               subprocess.run(["git", "checkout", src, "--"] + files[i:i + 200], check=True)
+          import os, re
+          def find(xml, el, member):
+              for m in re.finditer(r"<" + el + r">(.*?)</" + el + r">", xml, re.S):
+                  f = re.search(r"<fullName>(.*?)</fullName>", m.group(1), re.S)
+                  if f and f.group(1).strip() == member:
+                      return m
+              return None
+          for c in inline:
+              i = c["inline"]; path = c["primary"]
+              if path in take:
+                  continue
+              srcxml = subprocess.run(["git", "show", src + ":" + path], capture_output=True, text=True).stdout
+              got = find(srcxml, i["element"], i["member"]) if srcxml else None
+              if not got:
+                  missing.append(c["label"] + " (expected in " + path + ")")
+                  continue
+              dst = open(path).read() if os.path.exists(path) else ('<?xml version="1.0" encoding="UTF-8"?>\n<' + i["root"] + ' xmlns="http://soap.sforce.com/2006/04/metadata">\n</' + i["root"] + '>\n')
+              old = find(dst, i["element"], i["member"])
+              if old:
+                  dst = dst[:old.start()] + got.group(0) + dst[old.end():]
+              else:
+                  same = list(re.finditer(r"</" + i["element"] + r">", dst))
+                  at = same[-1].end() if same else dst.rindex("</" + i["root"] + ">")
+                  lead = "\n    " if same else "    "
+                  tail = "" if same else "\n"
+                  dst = dst[:at] + lead + got.group(0) + tail + dst[at:]
+              os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+              open(path, "w").write(dst)
+              subprocess.run(["git", "add", "--", path], check=True)
+              files.append(path)
+          if missing:
+              open("/tmp/haviq_missing.txt", "w").write("; ".join(missing))
+              print("[haviq] These entries are not on " + req["sourceBranch"] + ", so nothing was pushed:")
+              for m in missing:
+                  print("[haviq]   " + m)
+              sys.exit(1)
           print("[haviq] Copied " + str(len(files)) + " file(s) for " + str(len(req["components"])) + " component(s) from " + req["sourceBranch"] + " with git.")
           PY
           git rm -q --ignore-unmatch manifest/haviq-assemble.json
@@ -2888,3 +2928,81 @@ jobs:
             rm -f /tmp/haviq_cb.out
           fi
           rm -f /tmp/haviq.key /tmp/haviq_head.txt /tmp/haviq_missing.txt
+
+  # ── Git merges the Work Item into its target (conflicts resolved by git)
+  haviq_merge:
+    name: haviq:merge-run
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'repository_dispatch'
+      && github.event.action == 'haviq-merge'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.client_payload.branch }}
+          fetch-depth: 0
+      - name: Merge with git
+        env:
+          HQ_BRANCH: ${{ github.event.client_payload.branch }}
+        run: |
+          HQ_FIFO=$(mktemp -u); mkfifo "$HQ_FIFO"; tee -a /tmp/haviq-step.log < "$HQ_FIFO" & HQ_TEE=$!; exec > "$HQ_FIFO" 2>&1; rm -f "$HQ_FIFO"; trap 'HQ_RC=$?; exec >&- 2>&-; wait $HQ_TEE; exit $HQ_RC' EXIT
+          git config user.email "ci@haviq.local"; git config user.name "HAV-IQ CI"
+          git log -1 --pretty=%B > /tmp/haviq_msg.txt
+          if ! grep -q "\[haviq-merge\]" /tmp/haviq_msg.txt; then
+            echo "[haviq] Not a HAV-IQ merge request; nothing to do."
+            exit 0
+          fi
+          git fetch --unshallow origin >/dev/null 2>&1 || true
+          set +e
+          python3 manifest/haviq-merge.py run manifest/haviq-merge.json
+          RC=$?
+          set -e
+          if [ "$RC" != "0" ] && [ "$RC" != "3" ]; then
+            echo "[haviq] The merge job could not run. Nothing was pushed; retry the deployment."
+            exit 1
+          fi
+          if ! git push origin "HEAD:$HQ_BRANCH" 2>/tmp/haviq_push.err; then
+            sed "s/^/[haviq]   /" /tmp/haviq_push.err || true
+            echo "[haviq] The push to $HQ_BRANCH was refused. Nothing was deployed; retry the deployment."
+            exit 1
+          fi
+          echo "[haviq] Merge job finished; HAV-IQ reads the outcome from $HQ_BRANCH."
+      - uses: actions/setup-node@v4
+        if: always()
+        with:
+          node-version: '22'
+      - run: npm install -g @salesforce/cli
+        if: always()
+      - name: Notify HAV-IQ
+        if: always()
+        continue-on-error: true
+        env:
+          HQ_STATUS: ${{ job.status == 'success' && 'success' || 'failed' }}
+          HQ_BRANCH: ${{ github.event.client_payload.branch }}
+          HQ_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          HAVIQ_PRIVATE_KEY: ${{ secrets.HAVIQ_PRIVATE_KEY }}
+          HAVIQ_CLIENT_ID: ${{ vars.HAVIQ_CLIENT_ID }}
+          HAVIQ_USERNAME: ${{ vars.HAVIQ_USERNAME }}
+          HAVIQ_URL: ${{ vars.HAVIQ_URL }}
+          SF_WEBHOOK_SECRET: ${{ secrets.SF_WEBHOOK_SECRET }}
+        run: |
+          grep -q "\[haviq-merge\]" /tmp/haviq_msg.txt 2>/dev/null || exit 0
+          echo "$HAVIQ_PRIVATE_KEY" > /tmp/haviq.key
+          HAVIQ_LOGIN_OUT=$(sf org login jwt --client-id "$HAVIQ_CLIENT_ID" --jwt-key-file /tmp/haviq.key --username "$HAVIQ_USERNAME" --instance-url "$HAVIQ_URL" --alias haviq-hub 2>&1) || true
+          SF_TOKEN=$(sf org auth show-access-token --target-org haviq-hub --json 2>/dev/null | python3 -c "import sys,json;d=json.load(sys.stdin);print(d['result']['accessToken'])" 2>/dev/null || echo "")
+          case "$SF_TOKEN" in *[[:space:]]*) SF_TOKEN="" ;; esac
+          if [ -z "$SF_TOKEN" ]; then
+            echo "[haviq] callback SKIPPED — no access token. HAV-IQ will read this"
+            echo "[haviq] run's result itself within a few minutes. The JWT login said:"
+            echo "$HAVIQ_LOGIN_OUT" | head -6 | sed "s/^/[haviq]   /"
+          fi
+          if [ -n "$SF_TOKEN" ]; then
+            DEPID=$(sed -n "s/.*\[haviq-dep:\([a-zA-Z0-9]*\)\].*/\1/p" /tmp/haviq_msg.txt | head -1)
+            BODY="{\"phase\":\"merge\",\"deploymentId\":\"$DEPID\",\"branch\":\"$HQ_BRANCH\",\"status\":\"$HQ_STATUS\",\"ciRunUrl\":\"$HQ_RUN_URL\"}"
+            HAVIQ_HTTP=$(curl -s -o /tmp/haviq_cb.out -w "%{http_code}" -X POST "$HAVIQ_URL/services/apexrest/haviq/pipeline/webhook" -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" -H "x-sf-devops-secret: $SF_WEBHOOK_SECRET" -d "$BODY" || echo "000")
+            echo "[haviq] merge callback HTTP $HAVIQ_HTTP"
+            rm -f /tmp/haviq_cb.out
+          fi
+          rm -f /tmp/haviq.key
