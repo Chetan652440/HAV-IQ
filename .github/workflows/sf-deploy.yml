@@ -121,9 +121,11 @@ jobs:
             else
               BODY="{\"branch\":\"$SF_BRANCH\",\"commitSha\":\"$SF_COMMIT_SHA\",\"deploymentId\":\"$SF_DEPLOYMENT_ID\",\"status\":\"$STATUS\",\"ciRunUrl\":\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"$ABSENT_JSON}"
             fi
+            SF_WEBHOOK_SECRET=$(printf '%s' "$SF_WEBHOOK_SECRET" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             HAVIQ_HTTP=$(curl -s -o /tmp/haviq_cb.out -w "%{http_code}" -X POST "${{ vars.HAVIQ_URL }}/services/apexrest/haviq/pipeline/webhook" -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" -H "x-sf-devops-secret: $SF_WEBHOOK_SECRET" -d "$BODY" || echo "000")
             echo "HAV-IQ callback HTTP $HAVIQ_HTTP"; cat /tmp/haviq_cb.out 2>/dev/null || true
             if [ "$HAVIQ_HTTP" = "401" ]; then echo "Callback rejected: check the SF_WEBHOOK_SECRET repository secret matches the pipeline webhook secret."; fi
+            case "$HAVIQ_HTTP" in 000*) echo "[haviq] The callback was not sent. HAV-IQ reads the result by polling instead, a few minutes later. Re-enter the SF_WEBHOOK_SECRET repository secret, then Regenerate CI YAML.";; esac
           fi
           rm -f /tmp/haviq.key
   deploy_qa_to_production:
@@ -226,9 +228,11 @@ jobs:
             else
               BODY="{\"branch\":\"$SF_BRANCH\",\"commitSha\":\"$SF_COMMIT_SHA\",\"deploymentId\":\"$SF_DEPLOYMENT_ID\",\"status\":\"$STATUS\",\"ciRunUrl\":\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"$ABSENT_JSON}"
             fi
+            SF_WEBHOOK_SECRET=$(printf '%s' "$SF_WEBHOOK_SECRET" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             HAVIQ_HTTP=$(curl -s -o /tmp/haviq_cb.out -w "%{http_code}" -X POST "${{ vars.HAVIQ_URL }}/services/apexrest/haviq/pipeline/webhook" -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" -H "x-sf-devops-secret: $SF_WEBHOOK_SECRET" -d "$BODY" || echo "000")
             echo "HAV-IQ callback HTTP $HAVIQ_HTTP"; cat /tmp/haviq_cb.out 2>/dev/null || true
             if [ "$HAVIQ_HTTP" = "401" ]; then echo "Callback rejected: check the SF_WEBHOOK_SECRET repository secret matches the pipeline webhook secret."; fi
+            case "$HAVIQ_HTTP" in 000*) echo "[haviq] The callback was not sent. HAV-IQ reads the result by polling instead, a few minutes later. Re-enter the SF_WEBHOOK_SECRET repository secret, then Regenerate CI YAML.";; esac
           fi
           rm -f /tmp/haviq.key
 
@@ -303,8 +307,9 @@ jobs:
             echo "$DOUT"
             if [ $DRC -ne 0 ]; then
               ABSENT=$(echo "$DOUT" | grep -oE "No [A-Za-z]+ named:? [^ ]+ found" | sort -u)
-              OTHER=$(echo "$DOUT" | grep -iE "error|Problem" | grep -vcE "No [A-Za-z]+ named:? [^ ]+ found")
-              if [ -n "$ABSENT" ] && [ "$OTHER" -eq 0 ]; then
+              ABSN=$(echo "$DOUT" | grep -cE "No [A-Za-z]+ named:? [^ ]+ found" || true)
+              FAILN=$(echo "$DOUT" | grep -oE "Component Failures \[[0-9]+\]" | grep -oE "[0-9]+" | head -1)
+              if [ -n "$ABSENT" ] && [ -n "$FAILN" ] && [ "$FAILN" -eq "$ABSN" ]; then
                 echo "[OI-317] Deletions skipped - already absent from the target org:"
                 echo "$ABSENT"
                 echo "[OI-317] The intended end state is already true. Continuing."
@@ -357,9 +362,11 @@ jobs:
             else
               BODY="{\"branch\":\"$SF_BRANCH\",\"commitSha\":\"$SF_COMMIT_SHA\",\"deploymentId\":\"$SF_DEPLOYMENT_ID\",\"status\":\"$STATUS\",\"ciRunUrl\":\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"$ABSENT_JSON}"
             fi
+            SF_WEBHOOK_SECRET=$(printf '%s' "$SF_WEBHOOK_SECRET" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             HAVIQ_HTTP=$(curl -s -o /tmp/haviq_cb.out -w "%{http_code}" -X POST "${{ vars.HAVIQ_URL }}/services/apexrest/haviq/pipeline/webhook" -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" -H "x-sf-devops-secret: $SF_WEBHOOK_SECRET" -d "$BODY" || echo "000")
             echo "HAV-IQ callback HTTP $HAVIQ_HTTP"; cat /tmp/haviq_cb.out 2>/dev/null || true
             if [ "$HAVIQ_HTTP" = "401" ]; then echo "Callback rejected: check the SF_WEBHOOK_SECRET repository secret matches the pipeline webhook secret."; fi
+            case "$HAVIQ_HTTP" in 000*) echo "[haviq] The callback was not sent. HAV-IQ reads the result by polling instead, a few minutes later. Re-enter the SF_WEBHOOK_SECRET repository secret, then Regenerate CI YAML.";; esac
           fi
           rm -f /tmp/haviq.key
   deploy_destructive_qa_to_production:
@@ -421,8 +428,9 @@ jobs:
           echo "$DOUT"
           if [ $DRC -ne 0 ]; then
             ABSENT=$(echo "$DOUT" | grep -oE "No [A-Za-z]+ named:? [^ ]+ found" | sort -u)
-            OTHER=$(echo "$DOUT" | grep -iE "error|Problem" | grep -vcE "No [A-Za-z]+ named:? [^ ]+ found")
-            if [ -n "$ABSENT" ] && [ "$OTHER" -eq 0 ]; then
+            ABSN=$(echo "$DOUT" | grep -cE "No [A-Za-z]+ named:? [^ ]+ found" || true)
+            FAILN=$(echo "$DOUT" | grep -oE "Component Failures \[[0-9]+\]" | grep -oE "[0-9]+" | head -1)
+            if [ -n "$ABSENT" ] && [ -n "$FAILN" ] && [ "$FAILN" -eq "$ABSN" ]; then
               echo "[OI-317] Deletions skipped - already absent from the target org:"
               echo "$ABSENT"
               echo "[OI-317] The intended end state is already true. Continuing."
@@ -472,9 +480,11 @@ jobs:
             else
               BODY="{\"branch\":\"$SF_BRANCH\",\"commitSha\":\"$SF_COMMIT_SHA\",\"deploymentId\":\"$SF_DEPLOYMENT_ID\",\"status\":\"$STATUS\",\"ciRunUrl\":\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"$ABSENT_JSON}"
             fi
+            SF_WEBHOOK_SECRET=$(printf '%s' "$SF_WEBHOOK_SECRET" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             HAVIQ_HTTP=$(curl -s -o /tmp/haviq_cb.out -w "%{http_code}" -X POST "${{ vars.HAVIQ_URL }}/services/apexrest/haviq/pipeline/webhook" -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" -H "x-sf-devops-secret: $SF_WEBHOOK_SECRET" -d "$BODY" || echo "000")
             echo "HAV-IQ callback HTTP $HAVIQ_HTTP"; cat /tmp/haviq_cb.out 2>/dev/null || true
             if [ "$HAVIQ_HTTP" = "401" ]; then echo "Callback rejected: check the SF_WEBHOOK_SECRET repository secret matches the pipeline webhook secret."; fi
+            case "$HAVIQ_HTTP" in 000*) echo "[haviq] The callback was not sent. HAV-IQ reads the result by polling instead, a few minutes later. Re-enter the SF_WEBHOOK_SECRET repository secret, then Regenerate CI YAML.";; esac
           fi
           rm -f /tmp/haviq.key
 
@@ -578,9 +588,11 @@ jobs:
             else
               BODY="{\"branch\":\"$SF_BRANCH\",\"commitSha\":\"$SF_COMMIT_SHA\",\"deploymentId\":\"$SF_DEPLOYMENT_ID\",\"status\":\"$STATUS\",\"ciRunUrl\":\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"$ABSENT_JSON}"
             fi
+            SF_WEBHOOK_SECRET=$(printf '%s' "$SF_WEBHOOK_SECRET" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             HAVIQ_HTTP=$(curl -s -o /tmp/haviq_cb.out -w "%{http_code}" -X POST "${{ vars.HAVIQ_URL }}/services/apexrest/haviq/pipeline/webhook" -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" -H "x-sf-devops-secret: $SF_WEBHOOK_SECRET" -d "$BODY" || echo "000")
             echo "HAV-IQ callback HTTP $HAVIQ_HTTP"; cat /tmp/haviq_cb.out 2>/dev/null || true
             if [ "$HAVIQ_HTTP" = "401" ]; then echo "Callback rejected: check the SF_WEBHOOK_SECRET repository secret matches the pipeline webhook secret."; fi
+            case "$HAVIQ_HTTP" in 000*) echo "[haviq] The callback was not sent. HAV-IQ reads the result by polling instead, a few minutes later. Re-enter the SF_WEBHOOK_SECRET repository secret, then Regenerate CI YAML.";; esac
           fi
           rm -f /tmp/haviq.key
   deploy_dev1_to_qa:
@@ -683,9 +695,11 @@ jobs:
             else
               BODY="{\"branch\":\"$SF_BRANCH\",\"commitSha\":\"$SF_COMMIT_SHA\",\"deploymentId\":\"$SF_DEPLOYMENT_ID\",\"status\":\"$STATUS\",\"ciRunUrl\":\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"$ABSENT_JSON}"
             fi
+            SF_WEBHOOK_SECRET=$(printf '%s' "$SF_WEBHOOK_SECRET" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             HAVIQ_HTTP=$(curl -s -o /tmp/haviq_cb.out -w "%{http_code}" -X POST "${{ vars.HAVIQ_URL }}/services/apexrest/haviq/pipeline/webhook" -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" -H "x-sf-devops-secret: $SF_WEBHOOK_SECRET" -d "$BODY" || echo "000")
             echo "HAV-IQ callback HTTP $HAVIQ_HTTP"; cat /tmp/haviq_cb.out 2>/dev/null || true
             if [ "$HAVIQ_HTTP" = "401" ]; then echo "Callback rejected: check the SF_WEBHOOK_SECRET repository secret matches the pipeline webhook secret."; fi
+            case "$HAVIQ_HTTP" in 000*) echo "[haviq] The callback was not sent. HAV-IQ reads the result by polling instead, a few minutes later. Re-enter the SF_WEBHOOK_SECRET repository secret, then Regenerate CI YAML.";; esac
           fi
           rm -f /tmp/haviq.key
 
@@ -760,8 +774,9 @@ jobs:
             echo "$DOUT"
             if [ $DRC -ne 0 ]; then
               ABSENT=$(echo "$DOUT" | grep -oE "No [A-Za-z]+ named:? [^ ]+ found" | sort -u)
-              OTHER=$(echo "$DOUT" | grep -iE "error|Problem" | grep -vcE "No [A-Za-z]+ named:? [^ ]+ found")
-              if [ -n "$ABSENT" ] && [ "$OTHER" -eq 0 ]; then
+              ABSN=$(echo "$DOUT" | grep -cE "No [A-Za-z]+ named:? [^ ]+ found" || true)
+              FAILN=$(echo "$DOUT" | grep -oE "Component Failures \[[0-9]+\]" | grep -oE "[0-9]+" | head -1)
+              if [ -n "$ABSENT" ] && [ -n "$FAILN" ] && [ "$FAILN" -eq "$ABSN" ]; then
                 echo "[OI-317] Deletions skipped - already absent from the target org:"
                 echo "$ABSENT"
                 echo "[OI-317] The intended end state is already true. Continuing."
@@ -814,9 +829,11 @@ jobs:
             else
               BODY="{\"branch\":\"$SF_BRANCH\",\"commitSha\":\"$SF_COMMIT_SHA\",\"deploymentId\":\"$SF_DEPLOYMENT_ID\",\"status\":\"$STATUS\",\"ciRunUrl\":\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"$ABSENT_JSON}"
             fi
+            SF_WEBHOOK_SECRET=$(printf '%s' "$SF_WEBHOOK_SECRET" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             HAVIQ_HTTP=$(curl -s -o /tmp/haviq_cb.out -w "%{http_code}" -X POST "${{ vars.HAVIQ_URL }}/services/apexrest/haviq/pipeline/webhook" -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" -H "x-sf-devops-secret: $SF_WEBHOOK_SECRET" -d "$BODY" || echo "000")
             echo "HAV-IQ callback HTTP $HAVIQ_HTTP"; cat /tmp/haviq_cb.out 2>/dev/null || true
             if [ "$HAVIQ_HTTP" = "401" ]; then echo "Callback rejected: check the SF_WEBHOOK_SECRET repository secret matches the pipeline webhook secret."; fi
+            case "$HAVIQ_HTTP" in 000*) echo "[haviq] The callback was not sent. HAV-IQ reads the result by polling instead, a few minutes later. Re-enter the SF_WEBHOOK_SECRET repository secret, then Regenerate CI YAML.";; esac
           fi
           rm -f /tmp/haviq.key
   deploy_destructive_dev1_to_qa:
@@ -878,8 +895,9 @@ jobs:
           echo "$DOUT"
           if [ $DRC -ne 0 ]; then
             ABSENT=$(echo "$DOUT" | grep -oE "No [A-Za-z]+ named:? [^ ]+ found" | sort -u)
-            OTHER=$(echo "$DOUT" | grep -iE "error|Problem" | grep -vcE "No [A-Za-z]+ named:? [^ ]+ found")
-            if [ -n "$ABSENT" ] && [ "$OTHER" -eq 0 ]; then
+            ABSN=$(echo "$DOUT" | grep -cE "No [A-Za-z]+ named:? [^ ]+ found" || true)
+            FAILN=$(echo "$DOUT" | grep -oE "Component Failures \[[0-9]+\]" | grep -oE "[0-9]+" | head -1)
+            if [ -n "$ABSENT" ] && [ -n "$FAILN" ] && [ "$FAILN" -eq "$ABSN" ]; then
               echo "[OI-317] Deletions skipped - already absent from the target org:"
               echo "$ABSENT"
               echo "[OI-317] The intended end state is already true. Continuing."
@@ -929,9 +947,11 @@ jobs:
             else
               BODY="{\"branch\":\"$SF_BRANCH\",\"commitSha\":\"$SF_COMMIT_SHA\",\"deploymentId\":\"$SF_DEPLOYMENT_ID\",\"status\":\"$STATUS\",\"ciRunUrl\":\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"$ABSENT_JSON}"
             fi
+            SF_WEBHOOK_SECRET=$(printf '%s' "$SF_WEBHOOK_SECRET" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             HAVIQ_HTTP=$(curl -s -o /tmp/haviq_cb.out -w "%{http_code}" -X POST "${{ vars.HAVIQ_URL }}/services/apexrest/haviq/pipeline/webhook" -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" -H "x-sf-devops-secret: $SF_WEBHOOK_SECRET" -d "$BODY" || echo "000")
             echo "HAV-IQ callback HTTP $HAVIQ_HTTP"; cat /tmp/haviq_cb.out 2>/dev/null || true
             if [ "$HAVIQ_HTTP" = "401" ]; then echo "Callback rejected: check the SF_WEBHOOK_SECRET repository secret matches the pipeline webhook secret."; fi
+            case "$HAVIQ_HTTP" in 000*) echo "[haviq] The callback was not sent. HAV-IQ reads the result by polling instead, a few minutes later. Re-enter the SF_WEBHOOK_SECRET repository secret, then Regenerate CI YAML.";; esac
           fi
           rm -f /tmp/haviq.key
 
@@ -1035,9 +1055,11 @@ jobs:
             else
               BODY="{\"branch\":\"$SF_BRANCH\",\"commitSha\":\"$SF_COMMIT_SHA\",\"deploymentId\":\"$SF_DEPLOYMENT_ID\",\"status\":\"$STATUS\",\"ciRunUrl\":\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"$ABSENT_JSON}"
             fi
+            SF_WEBHOOK_SECRET=$(printf '%s' "$SF_WEBHOOK_SECRET" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             HAVIQ_HTTP=$(curl -s -o /tmp/haviq_cb.out -w "%{http_code}" -X POST "${{ vars.HAVIQ_URL }}/services/apexrest/haviq/pipeline/webhook" -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" -H "x-sf-devops-secret: $SF_WEBHOOK_SECRET" -d "$BODY" || echo "000")
             echo "HAV-IQ callback HTTP $HAVIQ_HTTP"; cat /tmp/haviq_cb.out 2>/dev/null || true
             if [ "$HAVIQ_HTTP" = "401" ]; then echo "Callback rejected: check the SF_WEBHOOK_SECRET repository secret matches the pipeline webhook secret."; fi
+            case "$HAVIQ_HTTP" in 000*) echo "[haviq] The callback was not sent. HAV-IQ reads the result by polling instead, a few minutes later. Re-enter the SF_WEBHOOK_SECRET repository secret, then Regenerate CI YAML.";; esac
           fi
           rm -f /tmp/haviq.key
   deploy_dev_to_qa:
@@ -1140,9 +1162,11 @@ jobs:
             else
               BODY="{\"branch\":\"$SF_BRANCH\",\"commitSha\":\"$SF_COMMIT_SHA\",\"deploymentId\":\"$SF_DEPLOYMENT_ID\",\"status\":\"$STATUS\",\"ciRunUrl\":\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"$ABSENT_JSON}"
             fi
+            SF_WEBHOOK_SECRET=$(printf '%s' "$SF_WEBHOOK_SECRET" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             HAVIQ_HTTP=$(curl -s -o /tmp/haviq_cb.out -w "%{http_code}" -X POST "${{ vars.HAVIQ_URL }}/services/apexrest/haviq/pipeline/webhook" -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" -H "x-sf-devops-secret: $SF_WEBHOOK_SECRET" -d "$BODY" || echo "000")
             echo "HAV-IQ callback HTTP $HAVIQ_HTTP"; cat /tmp/haviq_cb.out 2>/dev/null || true
             if [ "$HAVIQ_HTTP" = "401" ]; then echo "Callback rejected: check the SF_WEBHOOK_SECRET repository secret matches the pipeline webhook secret."; fi
+            case "$HAVIQ_HTTP" in 000*) echo "[haviq] The callback was not sent. HAV-IQ reads the result by polling instead, a few minutes later. Re-enter the SF_WEBHOOK_SECRET repository secret, then Regenerate CI YAML.";; esac
           fi
           rm -f /tmp/haviq.key
 
@@ -1217,8 +1241,9 @@ jobs:
             echo "$DOUT"
             if [ $DRC -ne 0 ]; then
               ABSENT=$(echo "$DOUT" | grep -oE "No [A-Za-z]+ named:? [^ ]+ found" | sort -u)
-              OTHER=$(echo "$DOUT" | grep -iE "error|Problem" | grep -vcE "No [A-Za-z]+ named:? [^ ]+ found")
-              if [ -n "$ABSENT" ] && [ "$OTHER" -eq 0 ]; then
+              ABSN=$(echo "$DOUT" | grep -cE "No [A-Za-z]+ named:? [^ ]+ found" || true)
+              FAILN=$(echo "$DOUT" | grep -oE "Component Failures \[[0-9]+\]" | grep -oE "[0-9]+" | head -1)
+              if [ -n "$ABSENT" ] && [ -n "$FAILN" ] && [ "$FAILN" -eq "$ABSN" ]; then
                 echo "[OI-317] Deletions skipped - already absent from the target org:"
                 echo "$ABSENT"
                 echo "[OI-317] The intended end state is already true. Continuing."
@@ -1271,9 +1296,11 @@ jobs:
             else
               BODY="{\"branch\":\"$SF_BRANCH\",\"commitSha\":\"$SF_COMMIT_SHA\",\"deploymentId\":\"$SF_DEPLOYMENT_ID\",\"status\":\"$STATUS\",\"ciRunUrl\":\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"$ABSENT_JSON}"
             fi
+            SF_WEBHOOK_SECRET=$(printf '%s' "$SF_WEBHOOK_SECRET" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             HAVIQ_HTTP=$(curl -s -o /tmp/haviq_cb.out -w "%{http_code}" -X POST "${{ vars.HAVIQ_URL }}/services/apexrest/haviq/pipeline/webhook" -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" -H "x-sf-devops-secret: $SF_WEBHOOK_SECRET" -d "$BODY" || echo "000")
             echo "HAV-IQ callback HTTP $HAVIQ_HTTP"; cat /tmp/haviq_cb.out 2>/dev/null || true
             if [ "$HAVIQ_HTTP" = "401" ]; then echo "Callback rejected: check the SF_WEBHOOK_SECRET repository secret matches the pipeline webhook secret."; fi
+            case "$HAVIQ_HTTP" in 000*) echo "[haviq] The callback was not sent. HAV-IQ reads the result by polling instead, a few minutes later. Re-enter the SF_WEBHOOK_SECRET repository secret, then Regenerate CI YAML.";; esac
           fi
           rm -f /tmp/haviq.key
   deploy_destructive_dev_to_qa:
@@ -1335,8 +1362,9 @@ jobs:
           echo "$DOUT"
           if [ $DRC -ne 0 ]; then
             ABSENT=$(echo "$DOUT" | grep -oE "No [A-Za-z]+ named:? [^ ]+ found" | sort -u)
-            OTHER=$(echo "$DOUT" | grep -iE "error|Problem" | grep -vcE "No [A-Za-z]+ named:? [^ ]+ found")
-            if [ -n "$ABSENT" ] && [ "$OTHER" -eq 0 ]; then
+            ABSN=$(echo "$DOUT" | grep -cE "No [A-Za-z]+ named:? [^ ]+ found" || true)
+            FAILN=$(echo "$DOUT" | grep -oE "Component Failures \[[0-9]+\]" | grep -oE "[0-9]+" | head -1)
+            if [ -n "$ABSENT" ] && [ -n "$FAILN" ] && [ "$FAILN" -eq "$ABSN" ]; then
               echo "[OI-317] Deletions skipped - already absent from the target org:"
               echo "$ABSENT"
               echo "[OI-317] The intended end state is already true. Continuing."
@@ -1386,9 +1414,11 @@ jobs:
             else
               BODY="{\"branch\":\"$SF_BRANCH\",\"commitSha\":\"$SF_COMMIT_SHA\",\"deploymentId\":\"$SF_DEPLOYMENT_ID\",\"status\":\"$STATUS\",\"ciRunUrl\":\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"$ABSENT_JSON}"
             fi
+            SF_WEBHOOK_SECRET=$(printf '%s' "$SF_WEBHOOK_SECRET" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             HAVIQ_HTTP=$(curl -s -o /tmp/haviq_cb.out -w "%{http_code}" -X POST "${{ vars.HAVIQ_URL }}/services/apexrest/haviq/pipeline/webhook" -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" -H "x-sf-devops-secret: $SF_WEBHOOK_SECRET" -d "$BODY" || echo "000")
             echo "HAV-IQ callback HTTP $HAVIQ_HTTP"; cat /tmp/haviq_cb.out 2>/dev/null || true
             if [ "$HAVIQ_HTTP" = "401" ]; then echo "Callback rejected: check the SF_WEBHOOK_SECRET repository secret matches the pipeline webhook secret."; fi
+            case "$HAVIQ_HTTP" in 000*) echo "[haviq] The callback was not sent. HAV-IQ reads the result by polling instead, a few minutes later. Re-enter the SF_WEBHOOK_SECRET repository secret, then Regenerate CI YAML.";; esac
           fi
           rm -f /tmp/haviq.key
 
@@ -1442,8 +1472,9 @@ jobs:
             echo "$DOUT"
             if [ $DRC -ne 0 ]; then
               ABSENT=$(echo "$DOUT" | grep -oE "No [A-Za-z]+ named:? [^ ]+ found" | sort -u)
-              OTHER=$(echo "$DOUT" | grep -iE "error|Problem" | grep -vcE "No [A-Za-z]+ named:? [^ ]+ found")
-              if [ -n "$ABSENT" ] && [ "$OTHER" -eq 0 ]; then
+              ABSN=$(echo "$DOUT" | grep -cE "No [A-Za-z]+ named:? [^ ]+ found" || true)
+              FAILN=$(echo "$DOUT" | grep -oE "Component Failures \[[0-9]+\]" | grep -oE "[0-9]+" | head -1)
+              if [ -n "$ABSENT" ] && [ -n "$FAILN" ] && [ "$FAILN" -eq "$ABSN" ]; then
                 echo "[OI-317] Deletions skipped - already absent from the target org:"
                 echo "$ABSENT"
                 echo "[OI-317] The intended end state is already true. Continuing."
@@ -1517,9 +1548,11 @@ jobs:
             else
               BODY="{\"branch\":\"$SF_BRANCH\",\"commitSha\":\"$SF_COMMIT_SHA\",\"deploymentId\":\"$SF_DEPLOYMENT_ID\",\"status\":\"$STATUS\",\"ciRunUrl\":\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"$ABSENT_JSON}"
             fi
+            SF_WEBHOOK_SECRET=$(printf '%s' "$SF_WEBHOOK_SECRET" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             HAVIQ_HTTP=$(curl -s -o /tmp/haviq_cb.out -w "%{http_code}" -X POST "${{ vars.HAVIQ_URL }}/services/apexrest/haviq/pipeline/webhook" -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" -H "x-sf-devops-secret: $SF_WEBHOOK_SECRET" -d "$BODY" || echo "000")
             echo "HAV-IQ callback HTTP $HAVIQ_HTTP"; cat /tmp/haviq_cb.out 2>/dev/null || true
             if [ "$HAVIQ_HTTP" = "401" ]; then echo "Callback rejected: check the SF_WEBHOOK_SECRET repository secret matches the pipeline webhook secret."; fi
+            case "$HAVIQ_HTTP" in 000*) echo "[haviq] The callback was not sent. HAV-IQ reads the result by polling instead, a few minutes later. Re-enter the SF_WEBHOOK_SECRET repository secret, then Regenerate CI YAML.";; esac
           fi
           rm -f /tmp/haviq.key
 
@@ -1661,6 +1694,7 @@ jobs:
             DEPID=$(sed -n "s/.*for deployment \([a-zA-Z0-9]*\).*/\1/p" /tmp/haviq_msg.txt | head -1)
             MEMBERS=$(cat /tmp/haviq_members.txt 2>/dev/null || echo "")
             BODY="{\"phase\":\"retrieve\",\"deploymentId\":\"$DEPID\",\"branch\":\"$HQ_BRANCH\",\"status\":\"$HQ_STATUS\",\"retrievedMembers\":\"$MEMBERS\",\"ciRunUrl\":\"$HQ_RUN_URL\"}"
+            SF_WEBHOOK_SECRET=$(printf '%s' "$SF_WEBHOOK_SECRET" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             HAVIQ_HTTP=$(curl -s -o /tmp/haviq_cb.out -w "%{http_code}" -X POST "$HAVIQ_URL/services/apexrest/haviq/pipeline/webhook" -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" -H "x-sf-devops-secret: $SF_WEBHOOK_SECRET" -d "$BODY" || echo "000")
             echo "[haviq] retrieve callback HTTP $HAVIQ_HTTP"
             [ "$HAVIQ_HTTP" = "200" ] || head -c 500 /tmp/haviq_cb.out 2>/dev/null | sed "s/^/[haviq]   /" || true
@@ -1718,8 +1752,9 @@ jobs:
             echo "$DOUT"
             if [ $DRC -ne 0 ]; then
               ABSENT=$(echo "$DOUT" | grep -oE "No [A-Za-z]+ named:? [^ ]+ found" | sort -u)
-              OTHER=$(echo "$DOUT" | grep -iE "error|Problem" | grep -vcE "No [A-Za-z]+ named:? [^ ]+ found")
-              if [ -n "$ABSENT" ] && [ "$OTHER" -eq 0 ]; then
+              ABSN=$(echo "$DOUT" | grep -cE "No [A-Za-z]+ named:? [^ ]+ found" || true)
+              FAILN=$(echo "$DOUT" | grep -oE "Component Failures \[[0-9]+\]" | grep -oE "[0-9]+" | head -1)
+              if [ -n "$ABSENT" ] && [ -n "$FAILN" ] && [ "$FAILN" -eq "$ABSN" ]; then
                 echo "[OI-317] Deletions skipped - already absent from the target org:"
                 echo "$ABSENT"
                 echo "[OI-317] The intended end state is already true. Continuing."
@@ -1793,9 +1828,11 @@ jobs:
             else
               BODY="{\"branch\":\"$SF_BRANCH\",\"commitSha\":\"$SF_COMMIT_SHA\",\"deploymentId\":\"$SF_DEPLOYMENT_ID\",\"status\":\"$STATUS\",\"ciRunUrl\":\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"$ABSENT_JSON}"
             fi
+            SF_WEBHOOK_SECRET=$(printf '%s' "$SF_WEBHOOK_SECRET" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             HAVIQ_HTTP=$(curl -s -o /tmp/haviq_cb.out -w "%{http_code}" -X POST "${{ vars.HAVIQ_URL }}/services/apexrest/haviq/pipeline/webhook" -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" -H "x-sf-devops-secret: $SF_WEBHOOK_SECRET" -d "$BODY" || echo "000")
             echo "HAV-IQ callback HTTP $HAVIQ_HTTP"; cat /tmp/haviq_cb.out 2>/dev/null || true
             if [ "$HAVIQ_HTTP" = "401" ]; then echo "Callback rejected: check the SF_WEBHOOK_SECRET repository secret matches the pipeline webhook secret."; fi
+            case "$HAVIQ_HTTP" in 000*) echo "[haviq] The callback was not sent. HAV-IQ reads the result by polling instead, a few minutes later. Re-enter the SF_WEBHOOK_SECRET repository secret, then Regenerate CI YAML.";; esac
           fi
           rm -f /tmp/haviq.key
 
@@ -1937,6 +1974,7 @@ jobs:
             DEPID=$(sed -n "s/.*for deployment \([a-zA-Z0-9]*\).*/\1/p" /tmp/haviq_msg.txt | head -1)
             MEMBERS=$(cat /tmp/haviq_members.txt 2>/dev/null || echo "")
             BODY="{\"phase\":\"retrieve\",\"deploymentId\":\"$DEPID\",\"branch\":\"$HQ_BRANCH\",\"status\":\"$HQ_STATUS\",\"retrievedMembers\":\"$MEMBERS\",\"ciRunUrl\":\"$HQ_RUN_URL\"}"
+            SF_WEBHOOK_SECRET=$(printf '%s' "$SF_WEBHOOK_SECRET" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             HAVIQ_HTTP=$(curl -s -o /tmp/haviq_cb.out -w "%{http_code}" -X POST "$HAVIQ_URL/services/apexrest/haviq/pipeline/webhook" -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" -H "x-sf-devops-secret: $SF_WEBHOOK_SECRET" -d "$BODY" || echo "000")
             echo "[haviq] retrieve callback HTTP $HAVIQ_HTTP"
             [ "$HAVIQ_HTTP" = "200" ] || head -c 500 /tmp/haviq_cb.out 2>/dev/null | sed "s/^/[haviq]   /" || true
@@ -1994,8 +2032,9 @@ jobs:
             echo "$DOUT"
             if [ $DRC -ne 0 ]; then
               ABSENT=$(echo "$DOUT" | grep -oE "No [A-Za-z]+ named:? [^ ]+ found" | sort -u)
-              OTHER=$(echo "$DOUT" | grep -iE "error|Problem" | grep -vcE "No [A-Za-z]+ named:? [^ ]+ found")
-              if [ -n "$ABSENT" ] && [ "$OTHER" -eq 0 ]; then
+              ABSN=$(echo "$DOUT" | grep -cE "No [A-Za-z]+ named:? [^ ]+ found" || true)
+              FAILN=$(echo "$DOUT" | grep -oE "Component Failures \[[0-9]+\]" | grep -oE "[0-9]+" | head -1)
+              if [ -n "$ABSENT" ] && [ -n "$FAILN" ] && [ "$FAILN" -eq "$ABSN" ]; then
                 echo "[OI-317] Deletions skipped - already absent from the target org:"
                 echo "$ABSENT"
                 echo "[OI-317] The intended end state is already true. Continuing."
@@ -2069,9 +2108,11 @@ jobs:
             else
               BODY="{\"branch\":\"$SF_BRANCH\",\"commitSha\":\"$SF_COMMIT_SHA\",\"deploymentId\":\"$SF_DEPLOYMENT_ID\",\"status\":\"$STATUS\",\"ciRunUrl\":\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"$ABSENT_JSON}"
             fi
+            SF_WEBHOOK_SECRET=$(printf '%s' "$SF_WEBHOOK_SECRET" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             HAVIQ_HTTP=$(curl -s -o /tmp/haviq_cb.out -w "%{http_code}" -X POST "${{ vars.HAVIQ_URL }}/services/apexrest/haviq/pipeline/webhook" -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" -H "x-sf-devops-secret: $SF_WEBHOOK_SECRET" -d "$BODY" || echo "000")
             echo "HAV-IQ callback HTTP $HAVIQ_HTTP"; cat /tmp/haviq_cb.out 2>/dev/null || true
             if [ "$HAVIQ_HTTP" = "401" ]; then echo "Callback rejected: check the SF_WEBHOOK_SECRET repository secret matches the pipeline webhook secret."; fi
+            case "$HAVIQ_HTTP" in 000*) echo "[haviq] The callback was not sent. HAV-IQ reads the result by polling instead, a few minutes later. Re-enter the SF_WEBHOOK_SECRET repository secret, then Regenerate CI YAML.";; esac
           fi
           rm -f /tmp/haviq.key
 
@@ -2213,6 +2254,7 @@ jobs:
             DEPID=$(sed -n "s/.*for deployment \([a-zA-Z0-9]*\).*/\1/p" /tmp/haviq_msg.txt | head -1)
             MEMBERS=$(cat /tmp/haviq_members.txt 2>/dev/null || echo "")
             BODY="{\"phase\":\"retrieve\",\"deploymentId\":\"$DEPID\",\"branch\":\"$HQ_BRANCH\",\"status\":\"$HQ_STATUS\",\"retrievedMembers\":\"$MEMBERS\",\"ciRunUrl\":\"$HQ_RUN_URL\"}"
+            SF_WEBHOOK_SECRET=$(printf '%s' "$SF_WEBHOOK_SECRET" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             HAVIQ_HTTP=$(curl -s -o /tmp/haviq_cb.out -w "%{http_code}" -X POST "$HAVIQ_URL/services/apexrest/haviq/pipeline/webhook" -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" -H "x-sf-devops-secret: $SF_WEBHOOK_SECRET" -d "$BODY" || echo "000")
             echo "[haviq] retrieve callback HTTP $HAVIQ_HTTP"
             [ "$HAVIQ_HTTP" = "200" ] || head -c 500 /tmp/haviq_cb.out 2>/dev/null | sed "s/^/[haviq]   /" || true
@@ -2270,8 +2312,9 @@ jobs:
             echo "$DOUT"
             if [ $DRC -ne 0 ]; then
               ABSENT=$(echo "$DOUT" | grep -oE "No [A-Za-z]+ named:? [^ ]+ found" | sort -u)
-              OTHER=$(echo "$DOUT" | grep -iE "error|Problem" | grep -vcE "No [A-Za-z]+ named:? [^ ]+ found")
-              if [ -n "$ABSENT" ] && [ "$OTHER" -eq 0 ]; then
+              ABSN=$(echo "$DOUT" | grep -cE "No [A-Za-z]+ named:? [^ ]+ found" || true)
+              FAILN=$(echo "$DOUT" | grep -oE "Component Failures \[[0-9]+\]" | grep -oE "[0-9]+" | head -1)
+              if [ -n "$ABSENT" ] && [ -n "$FAILN" ] && [ "$FAILN" -eq "$ABSN" ]; then
                 echo "[OI-317] Deletions skipped - already absent from the target org:"
                 echo "$ABSENT"
                 echo "[OI-317] The intended end state is already true. Continuing."
@@ -2345,9 +2388,11 @@ jobs:
             else
               BODY="{\"branch\":\"$SF_BRANCH\",\"commitSha\":\"$SF_COMMIT_SHA\",\"deploymentId\":\"$SF_DEPLOYMENT_ID\",\"status\":\"$STATUS\",\"ciRunUrl\":\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"$ABSENT_JSON}"
             fi
+            SF_WEBHOOK_SECRET=$(printf '%s' "$SF_WEBHOOK_SECRET" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             HAVIQ_HTTP=$(curl -s -o /tmp/haviq_cb.out -w "%{http_code}" -X POST "${{ vars.HAVIQ_URL }}/services/apexrest/haviq/pipeline/webhook" -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" -H "x-sf-devops-secret: $SF_WEBHOOK_SECRET" -d "$BODY" || echo "000")
             echo "HAV-IQ callback HTTP $HAVIQ_HTTP"; cat /tmp/haviq_cb.out 2>/dev/null || true
             if [ "$HAVIQ_HTTP" = "401" ]; then echo "Callback rejected: check the SF_WEBHOOK_SECRET repository secret matches the pipeline webhook secret."; fi
+            case "$HAVIQ_HTTP" in 000*) echo "[haviq] The callback was not sent. HAV-IQ reads the result by polling instead, a few minutes later. Re-enter the SF_WEBHOOK_SECRET repository secret, then Regenerate CI YAML.";; esac
           fi
           rm -f /tmp/haviq.key
 
@@ -2489,6 +2534,7 @@ jobs:
             DEPID=$(sed -n "s/.*for deployment \([a-zA-Z0-9]*\).*/\1/p" /tmp/haviq_msg.txt | head -1)
             MEMBERS=$(cat /tmp/haviq_members.txt 2>/dev/null || echo "")
             BODY="{\"phase\":\"retrieve\",\"deploymentId\":\"$DEPID\",\"branch\":\"$HQ_BRANCH\",\"status\":\"$HQ_STATUS\",\"retrievedMembers\":\"$MEMBERS\",\"ciRunUrl\":\"$HQ_RUN_URL\"}"
+            SF_WEBHOOK_SECRET=$(printf '%s' "$SF_WEBHOOK_SECRET" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             HAVIQ_HTTP=$(curl -s -o /tmp/haviq_cb.out -w "%{http_code}" -X POST "$HAVIQ_URL/services/apexrest/haviq/pipeline/webhook" -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" -H "x-sf-devops-secret: $SF_WEBHOOK_SECRET" -d "$BODY" || echo "000")
             echo "[haviq] retrieve callback HTTP $HAVIQ_HTTP"
             [ "$HAVIQ_HTTP" = "200" ] || head -c 500 /tmp/haviq_cb.out 2>/dev/null | sed "s/^/[haviq]   /" || true
@@ -2616,8 +2662,9 @@ jobs:
             echo "$DOUT"
             if [ $DRC -ne 0 ]; then
               ABSENT=$(echo "$DOUT" | grep -oE "No [A-Za-z]+ named:? [^ ]+ found" | sort -u)
-              OTHER=$(echo "$DOUT" | grep -iE "error|Problem" | grep -vcE "No [A-Za-z]+ named:? [^ ]+ found")
-              if [ -n "$ABSENT" ] && [ "$OTHER" -eq 0 ]; then
+              ABSN=$(echo "$DOUT" | grep -cE "No [A-Za-z]+ named:? [^ ]+ found" || true)
+              FAILN=$(echo "$DOUT" | grep -oE "Component Failures \[[0-9]+\]" | grep -oE "[0-9]+" | head -1)
+              if [ -n "$ABSENT" ] && [ -n "$FAILN" ] && [ "$FAILN" -eq "$ABSN" ]; then
                 echo "[OI-317] Deletions skipped - already absent from the target org:"
                 echo "$ABSENT"
                 echo "[OI-317] The intended end state is already true. Continuing."
@@ -2670,9 +2717,11 @@ jobs:
             else
               BODY="{\"branch\":\"$SF_BRANCH\",\"commitSha\":\"$SF_COMMIT_SHA\",\"deploymentId\":\"$SF_DEPLOYMENT_ID\",\"status\":\"$STATUS\",\"ciRunUrl\":\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"$ABSENT_JSON}"
             fi
+            SF_WEBHOOK_SECRET=$(printf '%s' "$SF_WEBHOOK_SECRET" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             HAVIQ_HTTP=$(curl -s -o /tmp/haviq_cb.out -w "%{http_code}" -X POST "${{ vars.HAVIQ_URL }}/services/apexrest/haviq/pipeline/webhook" -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" -H "x-sf-devops-secret: $SF_WEBHOOK_SECRET" -d "$BODY" || echo "000")
             echo "HAV-IQ callback HTTP $HAVIQ_HTTP"; cat /tmp/haviq_cb.out 2>/dev/null || true
             if [ "$HAVIQ_HTTP" = "401" ]; then echo "Callback rejected: check the SF_WEBHOOK_SECRET repository secret matches the pipeline webhook secret."; fi
+            case "$HAVIQ_HTTP" in 000*) echo "[haviq] The callback was not sent. HAV-IQ reads the result by polling instead, a few minutes later. Re-enter the SF_WEBHOOK_SECRET repository secret, then Regenerate CI YAML.";; esac
           fi
           rm -f /tmp/haviq.key
 
@@ -2769,6 +2818,7 @@ jobs:
             HEADSHA=$(cat /tmp/haviq_head.txt 2>/dev/null || echo "")
             UNRESOLVED=$(cat /tmp/haviq_unresolved.txt 2>/dev/null || echo "")
             BODY="{\"phase\":\"resolve\",\"deploymentId\":\"$DEPID\",\"branch\":\"$HQ_BRANCH\",\"status\":\"$HQ_STATUS\",\"commitSha\":\"$HEADSHA\",\"unresolvedFiles\":\"$UNRESOLVED\",\"ciRunUrl\":\"$HQ_RUN_URL\"}"
+            SF_WEBHOOK_SECRET=$(printf '%s' "$SF_WEBHOOK_SECRET" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             HAVIQ_HTTP=$(curl -s -o /tmp/haviq_cb.out -w "%{http_code}" -X POST "$HAVIQ_URL/services/apexrest/haviq/pipeline/webhook" -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" -H "x-sf-devops-secret: $SF_WEBHOOK_SECRET" -d "$BODY" || echo "000")
             echo "[haviq] resolve callback HTTP $HAVIQ_HTTP"
             [ "$HAVIQ_HTTP" = "200" ] || head -c 500 /tmp/haviq_cb.out 2>/dev/null | sed "s/^/[haviq]   /" || true
@@ -2922,6 +2972,7 @@ jobs:
             HEADSHA=$(cat /tmp/haviq_head.txt 2>/dev/null || echo "")
             MISSING=$(cat /tmp/haviq_missing.txt 2>/dev/null | tr -d '"\\' || echo "")
             BODY="{\"phase\":\"assemble\",\"deploymentId\":\"$DEPID\",\"branch\":\"$HQ_BRANCH\",\"status\":\"$HQ_STATUS\",\"commitSha\":\"$HEADSHA\",\"missingComponents\":\"$MISSING\",\"ciRunUrl\":\"$HQ_RUN_URL\"}"
+            SF_WEBHOOK_SECRET=$(printf '%s' "$SF_WEBHOOK_SECRET" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             HAVIQ_HTTP=$(curl -s -o /tmp/haviq_cb.out -w "%{http_code}" -X POST "$HAVIQ_URL/services/apexrest/haviq/pipeline/webhook" -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" -H "x-sf-devops-secret: $SF_WEBHOOK_SECRET" -d "$BODY" || echo "000")
             echo "[haviq] assemble callback HTTP $HAVIQ_HTTP"
             [ "$HAVIQ_HTTP" = "200" ] || head -c 500 /tmp/haviq_cb.out 2>/dev/null | sed "s/^/[haviq]   /" || true
@@ -3001,6 +3052,7 @@ jobs:
           if [ -n "$SF_TOKEN" ]; then
             DEPID=$(sed -n "s/.*\[haviq-dep:\([a-zA-Z0-9]*\)\].*/\1/p" /tmp/haviq_msg.txt | head -1)
             BODY="{\"phase\":\"merge\",\"deploymentId\":\"$DEPID\",\"branch\":\"$HQ_BRANCH\",\"status\":\"$HQ_STATUS\",\"ciRunUrl\":\"$HQ_RUN_URL\"}"
+            SF_WEBHOOK_SECRET=$(printf '%s' "$SF_WEBHOOK_SECRET" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             HAVIQ_HTTP=$(curl -s -o /tmp/haviq_cb.out -w "%{http_code}" -X POST "$HAVIQ_URL/services/apexrest/haviq/pipeline/webhook" -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" -H "x-sf-devops-secret: $SF_WEBHOOK_SECRET" -d "$BODY" || echo "000")
             echo "[haviq] merge callback HTTP $HAVIQ_HTTP"
             rm -f /tmp/haviq_cb.out
