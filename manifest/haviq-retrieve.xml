@@ -7,7 +7,7 @@
 -->
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
-        <members>HAVIQ_195_Test_Profile</members>
+        <members>HAVIQ 193 Test Profile</members>
         <name>Profile</name>
     </types>
     <version>64.0</version>
