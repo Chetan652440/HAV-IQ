@@ -3,6 +3,6 @@
  */
 public with sharing class HAVIQSampleApex {
     public static String getStatus() {
-        return 'HAV-IQ Apex class deployment test successful';
+        return 'HAV-IQ Apex class deployment test successful testing';
     }
 }
