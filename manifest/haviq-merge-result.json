@@ -1,0 +1,37 @@
+{
+ "summary": {
+  "files": 2,
+  "bothChanged": 0,
+  "policyResolved": 0,
+  "decided": 0,
+  "conflicts": 1
+ },
+ "policy": [],
+ "conflicts": [
+  {
+   "path": ".github/sf-deploy.yml",
+   "type": "Other",
+   "kind": "content",
+   "engine": "git",
+   "entries": [],
+   "base": "cb7f4afb88c63904c2f76f65157ce22c80835054",
+   "source": "febb6d4ff8f8f5782d7a34b467ca246e6d7570a7",
+   "target": "8f64958a56228904f3c3fdebe6831571a2a899d1",
+   "binary": false,
+   "sizes": {
+    "base": 167361,
+    "source": 244198,
+    "target": 257652
+   },
+   "sourceChange": null,
+   "targetChange": {
+    "author": "Chetan652440",
+    "date": "2026-11-24T14:00:46+05:30",
+    "subject": "Rename sf-deploy-pr-target-jwt-check.yml to sf-deploy.yml"
+   }
+  }
+ ],
+ "workItemBranch": "feature/permission-set-24nov",
+ "targetHead": "6f4271bcdd977727aa35663b68e87d4aef30c41c",
+ "sourceHead": "a504ac1e33a95d7cfa75121506abea11739859c6"
+}
