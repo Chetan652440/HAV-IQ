@@ -1,1 +1,1 @@
-force-app/main/default/remoteSiteSettings
+force-app/main/default/workflows

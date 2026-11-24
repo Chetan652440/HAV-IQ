@@ -7,8 +7,8 @@
 -->
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
-        <members>HAVIQ_Sample_Remote_Site</members>
-        <name>RemoteSiteSetting</name>
+        <members>Account.HAVIQ_195_Test_Workflow_Alert</members>
+        <name>WorkflowAlert</name>
     </types>
     <version>64.0</version>
 </Package>
