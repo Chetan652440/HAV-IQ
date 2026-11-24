@@ -1,9 +1,0 @@
-{
-  "components" : [ {
-    "prefixes" : [ ],
-    "required" : [ ],
-    "primary" : "force-app/main/default/flows/sfdc_default_ReportExport_Protection_Flow.flow-meta.xml",
-    "label" : "Flow:sfdc_default_ReportExport_Protection_Flow"
-  } ],
-  "sourceBranch" : "dev"
-}
