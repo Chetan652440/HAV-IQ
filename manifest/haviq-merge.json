@@ -1,0 +1,9 @@
+{
+  "commitMessage" : "Deploy: Dev → QA [haviq] [haviq-dep:a06g800000Br5cjAAB]",
+  "decisions" : {
+    ".github/sf-deploy.yml" : "source"
+  },
+  "rules" : [ ],
+  "targetBranch" : "qa",
+  "workItemBranch" : "feature/permission-set-24nov"
+}
