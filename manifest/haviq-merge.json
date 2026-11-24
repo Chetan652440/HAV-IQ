@@ -1,7 +1,0 @@
-{
-  "commitMessage" : "Deploy: Dev → QA [haviq] [haviq-dep:a06g800000Br7g9AAB]",
-  "decisions" : { },
-  "rules" : [ ],
-  "targetBranch" : "qa",
-  "workItemBranch" : "feature/aura-24"
-}
