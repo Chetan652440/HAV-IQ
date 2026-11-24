@@ -1,0 +1,7 @@
+{
+  "commitMessage" : "Deploy: Dev → QA [haviq] [haviq-dep:a06g800000Bqt25AAB]",
+  "decisions" : { },
+  "rules" : [ ],
+  "targetBranch" : "qa",
+  "workItemBranch" : "feature/flow-24"
+}
