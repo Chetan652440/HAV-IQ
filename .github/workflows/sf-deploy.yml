@@ -6,7 +6,7 @@ on:
       - "promote/**"
       - "rollback/**"
       - "feature/*-to-*-resolve-*"
-      - "production"
+      - "main"
       - "qa"
       - "dev"
       - "dev1"
@@ -21,12 +21,12 @@ permissions:
 
 jobs:
 
-  # ── qa → production
-  validate_qa_to_production:
+  # ── qa → main
+  validate_qa_to_main:
     runs-on: ubuntu-latest
     if: >-
-      startsWith(github.ref_name, 'promote/qa-to-production-')
-      || startsWith(github.ref_name, 'feature/qa-to-production-resolve-')
+      startsWith(github.ref_name, 'promote/qa-to-main-')
+      || startsWith(github.ref_name, 'feature/qa-to-main-resolve-')
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -35,8 +35,8 @@ jobs:
       - run: npm install -g @salesforce/cli
       - run: |
           HQ_FIFO=$(mktemp -u); mkfifo "$HQ_FIFO"; tee -a /tmp/haviq-step.log < "$HQ_FIFO" & HQ_TEE=$!; exec > "$HQ_FIFO" 2>&1; rm -f "$HQ_FIFO"; trap 'HQ_RC=$?; exec >&- 2>&-; wait $HQ_TEE; exit $HQ_RC' EXIT
-          echo "${{ secrets.SF_JWT_KEY_PRODUCTION }}" > server.key
-          sf org login jwt --client-id ${{ vars.SF_CLIENT_ID_PRODUCTION }} --jwt-key-file server.key --username ${{ vars.SF_USERNAME_PRODUCTION }} --instance-url ${{ vars.SF_ORG_URL_PRODUCTION }} --alias target
+          echo "${{ secrets.SF_JWT_KEY_MAIN }}" > server.key
+          sf org login jwt --client-id ${{ vars.SF_CLIENT_ID_MAIN }} --jwt-key-file server.key --username ${{ vars.SF_USERNAME_MAIN }} --instance-url ${{ vars.SF_ORG_URL_MAIN }} --alias target
       - name: Resolve HAV-IQ manifest
         env:
           HAVIQ_VARS: ${{ toJSON(vars) }}
@@ -128,8 +128,8 @@ jobs:
             case "$HAVIQ_HTTP" in 000*) echo "[haviq] The callback was not sent. HAV-IQ reads the result by polling instead, a few minutes later. Re-enter the SF_WEBHOOK_SECRET repository secret, then Regenerate CI YAML.";; esac
           fi
           rm -f /tmp/haviq.key
-  deploy_qa_to_production:
-    needs: validate_qa_to_production
+  deploy_qa_to_main:
+    needs: validate_qa_to_main
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -139,8 +139,8 @@ jobs:
       - run: npm install -g @salesforce/cli
       - run: |
           HQ_FIFO=$(mktemp -u); mkfifo "$HQ_FIFO"; tee -a /tmp/haviq-step.log < "$HQ_FIFO" & HQ_TEE=$!; exec > "$HQ_FIFO" 2>&1; rm -f "$HQ_FIFO"; trap 'HQ_RC=$?; exec >&- 2>&-; wait $HQ_TEE; exit $HQ_RC' EXIT
-          echo "${{ secrets.SF_JWT_KEY_PRODUCTION }}" > server.key
-          sf org login jwt --client-id ${{ vars.SF_CLIENT_ID_PRODUCTION }} --jwt-key-file server.key --username ${{ vars.SF_USERNAME_PRODUCTION }} --instance-url ${{ vars.SF_ORG_URL_PRODUCTION }} --alias target
+          echo "${{ secrets.SF_JWT_KEY_MAIN }}" > server.key
+          sf org login jwt --client-id ${{ vars.SF_CLIENT_ID_MAIN }} --jwt-key-file server.key --username ${{ vars.SF_USERNAME_MAIN }} --instance-url ${{ vars.SF_ORG_URL_MAIN }} --alias target
           if git log -1 --pretty=%B | grep -q "\[run-tests\]"; then
             for i in 1 2 3; do sf apex run test --target-org target --test-level RunLocalTests --wait 10 && break; [ $i -lt 3 ] && echo "Test run busy, retrying in 60s..." && sleep 60 || exit 1; done
           fi
@@ -236,10 +236,10 @@ jobs:
           fi
           rm -f /tmp/haviq.key
 
-  # ── production → qa (back-promote)
-  back_promote_production_to_qa:
+  # ── main → qa (back-promote)
+  back_promote_main_to_qa:
     runs-on: ubuntu-latest
-    if: startsWith(github.ref_name, 'promote/production-to-qa-')
+    if: startsWith(github.ref_name, 'promote/main-to-qa-')
     steps:
       - uses: actions/checkout@v4
         with:
@@ -369,12 +369,12 @@ jobs:
             case "$HAVIQ_HTTP" in 000*) echo "[haviq] The callback was not sent. HAV-IQ reads the result by polling instead, a few minutes later. Re-enter the SF_WEBHOOK_SECRET repository secret, then Regenerate CI YAML.";; esac
           fi
           rm -f /tmp/haviq.key
-  deploy_destructive_qa_to_production:
-    needs: deploy_qa_to_production
+  deploy_destructive_qa_to_main:
+    needs: deploy_qa_to_main
     runs-on: ubuntu-latest
     if: >-
-      startsWith(github.ref_name, 'promote/qa-to-production-')
-      || startsWith(github.ref_name, 'feature/qa-to-production-resolve-')
+      startsWith(github.ref_name, 'promote/qa-to-main-')
+      || startsWith(github.ref_name, 'feature/qa-to-main-resolve-')
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -383,8 +383,8 @@ jobs:
       - run: npm install -g @salesforce/cli
       - run: |
           HQ_FIFO=$(mktemp -u); mkfifo "$HQ_FIFO"; tee -a /tmp/haviq-step.log < "$HQ_FIFO" & HQ_TEE=$!; exec > "$HQ_FIFO" 2>&1; rm -f "$HQ_FIFO"; trap 'HQ_RC=$?; exec >&- 2>&-; wait $HQ_TEE; exit $HQ_RC' EXIT
-          echo "${{ secrets.SF_JWT_KEY_PRODUCTION }}" > server.key
-          sf org login jwt --client-id ${{ vars.SF_CLIENT_ID_PRODUCTION }} --jwt-key-file server.key --username ${{ vars.SF_USERNAME_PRODUCTION }} --instance-url ${{ vars.SF_ORG_URL_PRODUCTION }} --alias target
+          echo "${{ secrets.SF_JWT_KEY_MAIN }}" > server.key
+          sf org login jwt --client-id ${{ vars.SF_CLIENT_ID_MAIN }} --jwt-key-file server.key --username ${{ vars.SF_USERNAME_MAIN }} --instance-url ${{ vars.SF_ORG_URL_MAIN }} --alias target
           if [ ! -f manifest/destructiveChanges.xml ] || ! grep -q "<members>" manifest/destructiveChanges.xml; then
             echo "No destructive changes for this deploy — nothing to do."; exit 0
           fi
@@ -1422,10 +1422,10 @@ jobs:
           fi
           rm -f /tmp/haviq.key
 
-  # ── Rollback: production
-  rollback_production:
+  # ── Rollback: main
+  rollback_main:
     runs-on: ubuntu-latest
-    if: startsWith(github.ref_name, 'rollback/production-')
+    if: startsWith(github.ref_name, 'rollback/main-')
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -1434,8 +1434,8 @@ jobs:
       - run: npm install -g @salesforce/cli
       - run: |
           HQ_FIFO=$(mktemp -u); mkfifo "$HQ_FIFO"; tee -a /tmp/haviq-step.log < "$HQ_FIFO" & HQ_TEE=$!; exec > "$HQ_FIFO" 2>&1; rm -f "$HQ_FIFO"; trap 'HQ_RC=$?; exec >&- 2>&-; wait $HQ_TEE; exit $HQ_RC' EXIT
-          echo "${{ secrets.SF_JWT_KEY_PRODUCTION }}" > server.key
-          sf org login jwt --client-id ${{ vars.SF_CLIENT_ID_PRODUCTION }} --jwt-key-file server.key --username ${{ vars.SF_USERNAME_PRODUCTION }} --instance-url ${{ vars.SF_ORG_URL_PRODUCTION }} --alias target
+          echo "${{ secrets.SF_JWT_KEY_MAIN }}" > server.key
+          sf org login jwt --client-id ${{ vars.SF_CLIENT_ID_MAIN }} --jwt-key-file server.key --username ${{ vars.SF_USERNAME_MAIN }} --instance-url ${{ vars.SF_ORG_URL_MAIN }} --alias target
       - name: Resolve HAV-IQ manifest
         env:
           HAVIQ_VARS: ${{ toJSON(vars) }}
@@ -1556,13 +1556,13 @@ jobs:
           fi
           rm -f /tmp/haviq.key
 
-  # ── Retrieve from production (RM-CI-RETRIEVE)
-  haviq_retrieve_production:
-    name: haviq:retrieve-production
+  # ── Retrieve from main (RM-CI-RETRIEVE)
+  haviq_retrieve_main:
+    name: haviq:retrieve-main
     runs-on: ubuntu-latest
     if: >-
       github.event_name == 'push'
-      && github.ref_name == 'production'
+      && github.ref_name == 'main'
       && contains(github.event.head_commit.message, '[haviq-retrieve]')
     permissions:
       contents: write
@@ -1576,13 +1576,13 @@ jobs:
       - run: npm install -g @salesforce/cli
       - name: Retrieve and commit
         env:
-          SF_JWT_KEY: ${{ secrets.SF_JWT_KEY_PRODUCTION }}
+          SF_JWT_KEY: ${{ secrets.SF_JWT_KEY_MAIN }}
         run: |
           HQ_FIFO=$(mktemp -u); mkfifo "$HQ_FIFO"; tee -a /tmp/haviq-step.log < "$HQ_FIFO" & HQ_TEE=$!; exec > "$HQ_FIFO" 2>&1; rm -f "$HQ_FIFO"; trap 'HQ_RC=$?; exec >&- 2>&-; wait $HQ_TEE; exit $HQ_RC' EXIT
           set -e
           git log -1 --pretty=%B > /tmp/haviq_msg.txt
           echo "$SF_JWT_KEY" > server.key
-          sf org login jwt --client-id ${{ vars.SF_CLIENT_ID_PRODUCTION }} --jwt-key-file server.key --username ${{ vars.SF_USERNAME_PRODUCTION }} --instance-url ${{ vars.SF_ORG_URL_PRODUCTION }} --alias haviq-source
+          sf org login jwt --client-id ${{ vars.SF_CLIENT_ID_MAIN }} --jwt-key-file server.key --username ${{ vars.SF_USERNAME_MAIN }} --instance-url ${{ vars.SF_ORG_URL_MAIN }} --alias haviq-source
           if [ -f .forceignore ]; then
             for T in $(grep -oE "<name>[A-Za-z]+</name>" manifest/haviq-retrieve.xml 2>/dev/null | sed "s/<[^>]*>//g" | sort -u); do
               LT=$(echo "$T" | tr "[:upper:]" "[:lower:]")
@@ -1649,18 +1649,18 @@ jobs:
           else
             git commit -m "chore: HAV-IQ CI retrieve [skip ci]"
             n=0
-            until git push origin HEAD:production 2>/tmp/haviq_push.err; do
+            until git push origin HEAD:main 2>/tmp/haviq_push.err; do
               n=$((n+1))
               sed "s/^/[haviq]   /" /tmp/haviq_push.err || true
               if grep -qiE "restrict|protected|permission|denied|403" /tmp/haviq_push.err; then
-                echo "[haviq] GitHub refused the push to production. Branch protection on it"
+                echo "[haviq] GitHub refused the push to main. Branch protection on it"
                 echo "[haviq] blocks the workflow's GITHUB_TOKEN. Allow GitHub Actions to push to"
-                echo "[haviq] production (or exempt it from the rule), then retry the deployment."
+                echo "[haviq] main (or exempt it from the rule), then retry the deployment."
                 exit 1
               fi
               [ $n -ge 3 ] && echo "[haviq] push failed after $n attempts" && exit 1
               echo "[haviq] push rejected — the branch moved. Rebasing (attempt $n)."
-              git pull --rebase origin production || { \
+              git pull --rebase origin main || { \
                 echo "[haviq] REBASE CONFLICT. Someone edited the same component"; \
                 echo "[haviq] while this retrieve was running. Resolve it in HAV-IQ"; \
                 echo "[haviq] and retry — this job will not resolve it for you."; \
